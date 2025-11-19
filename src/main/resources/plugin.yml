@@ -1,0 +1,9 @@
+name: IneServerAfkPlugin
+version: '1.0'
+main: net.onecat.ineserverafkplugin.IneServerAfkPlugin
+api-version: '1.21'
+depend: [LuckPerms]
+commands:
+  afk:
+    description: AFKモードを切り替えます
+    usage: /afk [理由]
