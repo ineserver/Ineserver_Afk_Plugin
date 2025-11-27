@@ -1,9 +1,14 @@
-name: IneServerAfkPlugin
+name: IneServerStatusPlugin
 version: '1.0'
-main: net.onecat.ineserverafkplugin.IneServerAfkPlugin
+name: IneServerStatusPlugin
+version: '1.0'
+main: net.inecat.ineserverstatusplugin.IneServerStatusPlugin
 api-version: '1.21'
 depend: [LuckPerms]
 commands:
+  status:
+    description: ステータスを変更します
+    usage: /status [status]
   afk:
-    description: AFKモードを切り替えます
-    usage: /afk [理由]
+    description: AFKステータスに変更します
+    usage: /afk [reason]
