@@ -29,7 +29,7 @@ public class StatusManager {
     public enum StatusType {
         NORMAL("通常", null, null),
         CHAT_WELCOME("雑談歓迎", null, "group.chat"),
-        AFK("AFK", null, "group.afk"), // Particles handled separately
+        AFK("離席中", null, "group.afk"), // Particles handled separately
         WORKING("作業中", null, "group.work"),
         RECORDING("撮影中", null, "group.rec"),
         CAT("ねこ", null, "group.scat");
@@ -170,7 +170,7 @@ public class StatusManager {
 
                     long lastActive = lastActivityTime.getOrDefault(player.getUniqueId(), now);
                     if (now - lastActive > AFK_THRESHOLD) {
-                        setStatus(player, StatusType.AFK, "Automatic");
+                        setStatus(player, StatusType.AFK, "自動");
                     }
                 }
             }
