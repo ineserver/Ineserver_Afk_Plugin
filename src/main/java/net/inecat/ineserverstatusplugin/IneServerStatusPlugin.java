@@ -7,6 +7,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -53,6 +54,11 @@ public class IneServerStatusPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(statusGui, this);
 
+        // Load status for online players (reload support)
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            statusManager.loadStatus(player);
+        }
+
         getLogger().info("IneServerStatusPlugin が有効化されました！");
     }
 
@@ -65,13 +71,21 @@ public class IneServerStatusPlugin extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        statusManager.loadStatus(event.getPlayer());
+    }
+
+    @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+        statusManager.saveStatus(event.getPlayer());
         statusManager.removeStatus(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
+
+        statusManager.updateActivity(player);
 
         // Only check if player is AFK
         if (statusManager.getStatus(player) != StatusManager.StatusType.AFK) {
@@ -86,7 +100,7 @@ public class IneServerStatusPlugin extends JavaPlugin implements Listener {
             return;
         }
 
-        // Remove AFK status on movement
-        statusManager.removeStatus(player);
+        // Restore status
+        statusManager.restorePreAfkStatus(player);
     }
 }

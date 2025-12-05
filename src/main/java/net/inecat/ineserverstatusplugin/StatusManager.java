@@ -22,12 +22,15 @@ public class StatusManager {
     private final LuckPerms luckPerms;
     private final Map<UUID, StatusType> playerStatuses = new HashMap<>();
     private final Map<UUID, String> afkReasons = new HashMap<>();
+    private final Map<UUID, Long> lastActivityTime = new HashMap<>();
+    private final Map<UUID, StatusType> preAfkStatus = new HashMap<>();
+    private static final long AFK_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
     public enum StatusType {
         NORMAL("通常", null, null),
         CHAT_WELCOME("雑談歓迎", null, "group.chat"),
         AFK("AFK", null, "group.afk"), // Particles handled separately
-        WORKING("作業中", Particle.ENCHANT, "group.work"),
+        WORKING("作業中", null, "group.work"),
         RECORDING("撮影中", null, "group.rec"),
         CAT("ねこ", null, "group.scat");
 
@@ -58,6 +61,7 @@ public class StatusManager {
         this.plugin = plugin;
         this.luckPerms = luckPerms;
         startParticleTask();
+        startAutoAfkTask();
     }
 
     public void setStatus(Player player, StatusType status) {
@@ -65,6 +69,16 @@ public class StatusManager {
     }
 
     public void setStatus(Player player, StatusType status, String reason) {
+        // Handle pre-AFK status logic
+        if (status == StatusType.AFK) {
+            StatusType current = getStatus(player);
+            if (current != StatusType.AFK) {
+                preAfkStatus.put(player.getUniqueId(), current);
+            }
+        } else {
+            preAfkStatus.remove(player.getUniqueId());
+        }
+
         // Remove old status permission
         StatusType oldStatus = getStatus(player);
         if (oldStatus != StatusType.NORMAL && oldStatus.getPermissionNode() != null) {
@@ -111,6 +125,58 @@ public class StatusManager {
         setStatus(player, StatusType.NORMAL);
     }
 
+    public void updateActivity(Player player) {
+        lastActivityTime.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    public void restorePreAfkStatus(Player player) {
+        if (getStatus(player) == StatusType.AFK) {
+            StatusType pre = preAfkStatus.getOrDefault(player.getUniqueId(), StatusType.NORMAL);
+            setStatus(player, pre);
+        }
+    }
+
+    public void saveStatus(Player player) {
+        StatusType current = getStatus(player);
+        StatusType toSave = current;
+        if (current == StatusType.AFK) {
+            toSave = preAfkStatus.getOrDefault(player.getUniqueId(), StatusType.NORMAL);
+        }
+        plugin.getConfig().set("status." + player.getUniqueId(), toSave.name());
+        plugin.saveConfig();
+    }
+
+    public void loadStatus(Player player) {
+        String statusName = plugin.getConfig().getString("status." + player.getUniqueId());
+        if (statusName != null) {
+            try {
+                StatusType status = StatusType.valueOf(statusName);
+                setStatus(player, status);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid status found for " + player.getName() + ": " + statusName);
+            }
+        }
+        updateActivity(player);
+    }
+
+    private void startAutoAfkTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                long now = System.currentTimeMillis();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (getStatus(player) == StatusType.AFK)
+                        continue;
+
+                    long lastActive = lastActivityTime.getOrDefault(player.getUniqueId(), now);
+                    if (now - lastActive > AFK_THRESHOLD) {
+                        setStatus(player, StatusType.AFK, "Automatic");
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
+    }
+
     private void startParticleTask() {
         new BukkitRunnable() {
             @Override
@@ -154,10 +220,13 @@ public class StatusManager {
         for (UUID uuid : playerStatuses.keySet()) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
+                saveStatus(player);
                 removeStatus(player);
             }
         }
         playerStatuses.clear();
         afkReasons.clear();
+        lastActivityTime.clear();
+        preAfkStatus.clear();
     }
 }
