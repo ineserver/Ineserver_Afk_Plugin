@@ -229,4 +229,8 @@ public class StatusManager {
         lastActivityTime.clear();
         preAfkStatus.clear();
     }
+
+    public void removeActivityData(Player player) {
+        lastActivityTime.remove(player.getUniqueId());
+    }
 }

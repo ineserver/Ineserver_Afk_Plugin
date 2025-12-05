@@ -79,6 +79,7 @@ public class IneServerStatusPlugin extends JavaPlugin implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         statusManager.saveStatus(event.getPlayer());
         statusManager.removeStatus(event.getPlayer());
+        statusManager.removeActivityData(event.getPlayer());
     }
 
     @EventHandler

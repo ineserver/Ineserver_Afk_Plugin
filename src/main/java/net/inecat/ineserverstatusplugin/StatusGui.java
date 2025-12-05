@@ -64,7 +64,7 @@ public class StatusGui implements InventoryHolder, Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() != this) {
+        if (event.getClickedInventory() != inventory) {
             return;
         }
 
